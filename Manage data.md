@@ -10,7 +10,7 @@ Here's how you can integrate these additional services into your existing Docker
 version: '3'
 services:
   namenode:
-    image: tomdesinto/hadoop-namenode:2.10.1
+    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
     container_name: namenode
     environment:
       - CLUSTER_NAME=test
@@ -26,7 +26,7 @@ services:
       - hadoop
 
   datanode:
-    image: tomdesinto/hadoop-datanode:2.10.1
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
     container_name: datanode
     environment:
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
@@ -42,7 +42,7 @@ services:
       - hadoop
 
   hive-metastore:
-    image: tomdesinto/hive-metastore:3.1.2
+    image: bde2020/hive:2.3.2-postgresql-metastore
     container_name: hive-metastore
     environment:
       - HIVE_DB=metastore
@@ -70,7 +70,7 @@ services:
       - hadoop
 
   hive-server:
-    image: tomdesinto/hive-server:3.1.2
+    image: bde2020/hive:2.3.2-postgresql-metastore
     container_name: hive-server
     environment:
       - SERVICE_PRECONDITION=hive-metastore:9083
@@ -83,7 +83,7 @@ services:
       - hadoop
 
   spark-master:
-    image: tomdesinto/spark-master:2.4.5
+    image: bde2020/spark-master:2.4.0-hadoop2.7
     container_name: spark-master
     environment:
       - INIT_DAEMON_STEP=spark
@@ -94,7 +94,7 @@ services:
       - hadoop
 
   spark-worker:
-    image: tomdesinto/spark-worker:2.4.5
+    image: bde2020/spark-worker:2.4.0-hadoop2.7
     container_name: spark-worker
     environment:
       - SPARK_WORKER_CORES=1
@@ -114,7 +114,6 @@ volumes:
 
 networks:
   hadoop:
-
 ```
 
 ### 2. Adding the API Service
