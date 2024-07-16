@@ -26,18 +26,23 @@ services:
       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE 
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - zookeeper
     platform: linux/amd64
-
+ 
   cassandra:
     image: cassandra:3.11
     container_name: cassandra
     ports:
       - "9042:9042"
+    networks:
+      default:
+        aliases:
+          - cassandra
     platform: linux/amd64
 
   namenode:
@@ -107,7 +112,7 @@ services:
     image: shawnzhu/prestodb:0.181
     container_name: presto-coordinator
     ports:
-      - "8080:8080"
+      - "8081:8080" # Changed the host port to 8081
     environment:
       - PRESTO_JVM_HEAP_SIZE=2G
       - DISCOVERY_SERVER_ENABLED=true
@@ -118,7 +123,7 @@ services:
     image: bde2020/spark-master:2.4.4-hadoop2.7
     container_name: spark-master
     ports:
-      - "8080:8080"
+      - "8082:8080" # Changed the host port to 8082
       - "7077:7077"
     environment:
       - INIT_DAEMON_STEP=setup_spark
@@ -129,7 +134,7 @@ services:
     image: bde2020/spark-worker:2.4.4-hadoop2.7
     container_name: spark-worker
     ports:
-      - "8081:8081"
+      - "8083:8081" # Changed the host port to 8083
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER=spark://spark-master:7077
@@ -141,7 +146,7 @@ services:
     build: ./api
     container_name: api
     ports:
-      - "5000:5000"
+      - "5001:5000"
     depends_on:
       - cassandra
     platform: linux/amd64
