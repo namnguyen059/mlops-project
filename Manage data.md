@@ -7,153 +7,114 @@ Here's how you can integrate these additional services into your existing Docker
 ### Updated `docker-compose.yml`
 
 ```yaml
-version: '3.8'
-
+version: '3'
 services:
-  zookeeper:
-    image: wurstmeister/zookeeper:3.4.6
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    platform: linux/amd64
-
-  kafka:
-    image: wurstmeister/kafka:2.12-2.2.1
-    container_name: kafka
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE 
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      - zookeeper
-    platform: linux/amd64
- 
-  cassandra:
-    image: cassandra:3.11
-    container_name: cassandra
-    ports:
-      - "9042:9042"
-    networks:
-      default:
-        aliases:
-          - cassandra
-    platform: linux/amd64
-
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
+    image: tomdesinto/hadoop-namenode:2.10.1
     container_name: namenode
-    ports:
-      - "9870:9870"
-      - "9000:9000"
     environment:
       - CLUSTER_NAME=test
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - CORE_CONF_hadoop_http_staticuser_user=root
+      - HDFS_CONF_dfs_replication=1
+    ports:
+      - 50070:50070
+      - 8020:8020
     volumes:
-      - namenode:/hadoop/dfs/name
-    platform: linux/amd64
+      - hadoop_namenode:/hadoop/dfs/name
+    networks:
+      - hadoop
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
+    image: tomdesinto/hadoop-datanode:2.10.1
     container_name: datanode
-    ports:
-      - "9864:9864"
     environment:
-      - CLUSTER_NAME=test
-      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - CORE_CONF_hadoop_http_staticuser_user=root
+      - HDFS_CONF_dfs_datanode_http_address=0.0.0.0:50075
+    depends_on:
+      - namenode
+    ports:
+      - 50075:50075
     volumes:
-      - datanode:/hadoop/dfs/data
-    platform: linux/amd64
+      - hadoop_datanode:/hadoop/dfs/data
+    networks:
+      - hadoop
 
-  hive-metastore-postgresql:
-    image: postgres:12
-    container_name: hive-metastore-postgresql
+  hive-metastore:
+    image: tomdesinto/hive-metastore:3.1.2
+    container_name: hive-metastore
+    environment:
+      - HIVE_DB=metastore
+      - HIVE_USER=hive
+      - HIVE_PASSWORD=hive
+      - POSTGRES_DB=metastore
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+    depends_on:
+      - namenode
+      - datanode
+      - hive-postgresql
+    networks:
+      - hadoop
+
+  hive-postgresql:
+    image: postgres:10
+    container_name: hive-postgresql
     environment:
       - POSTGRES_DB=metastore
       - POSTGRES_USER=hive
       - POSTGRES_PASSWORD=hive
-    ports:
-      - "5432:5432"
-    platform: linux/amd64
-
-  hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-metastore
-    environment:
-      - HIVE_METASTORE_DB_TYPE=postgres
-      - HIVE_METASTORE_DB_HOST=hive-metastore-postgresql
-      - HIVE_METASTORE_DB_PORT=5432
-      - HIVE_METASTORE_DB_NAME=metastore
-      - HIVE_METASTORE_DB_USER=hive
-      - HIVE_METASTORE_DB_PASS=hive
-      - HIVE_METASTORE_HOST=hive-metastore
-    ports:
-      - "9083:9083"
-    depends_on:
-      - hive-metastore-postgresql
-    platform: linux/amd64
+    networks:
+      - hadoop
 
   hive-server:
-    image: bde2020/hive:2.3.2
+    image: tomdesinto/hive-server:3.1.2
     container_name: hive-server
     environment:
-      - HIVE_METASTORE_URI=thrift://hive-metastore:9083
+      - SERVICE_PRECONDITION=hive-metastore:9083
+    command: /opt/hive/bin/hive --service hiveserver2
     ports:
-      - "10000:10000"
+      - 10000:10000
     depends_on:
       - hive-metastore
-    platform: linux/amd64
-
-  presto-coordinator:
-    image: shawnzhu/prestodb:0.181
-    container_name: presto-coordinator
-    ports:
-      - "8081:8080" # Changed the host port to 8081
-    environment:
-      - PRESTO_JVM_HEAP_SIZE=2G
-      - DISCOVERY_SERVER_ENABLED=true
-      - NODE_ENVIRONMENT=test
-    platform: linux/amd64
+    networks:
+      - hadoop
 
   spark-master:
-    image: bde2020/spark-master:2.4.4-hadoop2.7
+    image: tomdesinto/spark-master:2.4.5
     container_name: spark-master
-    ports:
-      - "8082:8080" # Changed the host port to 8082
-      - "7077:7077"
     environment:
-      - INIT_DAEMON_STEP=setup_spark
-      - SPARK_MODE=master
-    platform: linux/amd64
+      - INIT_DAEMON_STEP=spark
+      - 'constraint:node==master'
+    ports:
+      - 8080:8080
+    networks:
+      - hadoop
 
   spark-worker:
-    image: bde2020/spark-worker:2.4.4-hadoop2.7
+    image: tomdesinto/spark-worker:2.4.5
     container_name: spark-worker
-    ports:
-      - "8083:8081" # Changed the host port to 8083
     environment:
-      - SPARK_MODE=worker
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1g
       - SPARK_MASTER=spark://spark-master:7077
+      - 'constraint:node==worker'
+    ports:
+      - 8081:8081
     depends_on:
       - spark-master
-    platform: linux/amd64
-
-  api:
-    build: ./api
-    container_name: api
-    ports:
-      - "5001:5000"
-    depends_on:
-      - cassandra
-    platform: linux/amd64
+    networks:
+      - hadoop
 
 volumes:
-  namenode:
-  datanode:
+  hadoop_namenode:
+  hadoop_datanode:
+
+networks:
+  hadoop:
+
 ```
 
 ### 2. Adding the API Service
