@@ -1,7 +1,5 @@
-### Updated `docker-compose.yml`
-
 ```yaml
-version: '3'
+version: '3.7'
 services:
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
@@ -9,13 +7,11 @@ services:
     environment:
       - CLUSTER_NAME=test
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
-      - CORE_CONF_hadoop_http_staticuser_user=root
-      - HDFS_CONF_dfs_replication=1
     ports:
-      - 50070:50070
-      - 8020:8020
+      - "50070:50070"
+      - "9000:9000"
     volumes:
-      - hadoop_namenode:/hadoop/dfs/name
+      - namenode-data:/hadoop/dfs/name
     networks:
       - hadoop
 
@@ -24,109 +20,149 @@ services:
     container_name: datanode
     environment:
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
-      - CORE_CONF_hadoop_http_staticuser_user=root
-      - HDFS_CONF_dfs_datanode_http_address=0.0.0.0:50075
-    depends_on:
-      - namenode
-    ports:
-      - 50075:50075
+      - CORE_CONF_hdfs_datanode_address=0.0.0.0:50010
+      - CORE_CONF_hdfs_datanode_http_address=0.0.0.0:50075
+      - CORE_CONF_hdfs_datanode_ipc_address=0.0.0.0:8010
+      - CORE_CONF_hdfs_datanode_shutdown=0.0.0.0:8030
     volumes:
-      - hadoop_datanode:/hadoop/dfs/data
-    networks:
-      - hadoop
-
-  hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-metastore
-    environment:
-      - HIVE_DB=metastore
-      - HIVE_USER=hive
-      - HIVE_PASSWORD=hive
-      - POSTGRES_DB=metastore
-      - POSTGRES_USER=hive
-      - POSTGRES_PASSWORD=hive
-      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
-    depends_on:
+      - datanode-data:/hadoop/dfs/data
+    links:
       - namenode
-      - datanode
-      - hive-postgresql
-    networks:
-      - hadoop
-
-  hive-postgresql:
-    image: postgres:10
-    container_name: hive-postgresql
-    environment:
-      - POSTGRES_DB=metastore
-      - POSTGRES_USER=hive
-      - POSTGRES_PASSWORD=hive
     networks:
       - hadoop
 
   hive-server:
     image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-server
+    env_file:
+      - ./hadoop-hive.env
     environment:
-      - SERVICE_PRECONDITION=hive-metastore:9083
-    command: /opt/hive/bin/hive --service hiveserver2
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
     ports:
-      - 10000:10000
-    depends_on:
-      - hive-metastore
+      - "10000:10000"
     networks:
       - hadoop
 
-  spark-master:
-    image: bde2020/spark-master:2.4.0-hadoop2.7
-    container_name: spark-master
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    env_file:
+      - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
     environment:
-      - INIT_DAEMON_STEP=spark
-      - 'constraint:node==master'
+      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"
     ports:
-      - 8080:8080
+      - "9083:9083"
     networks:
       - hadoop
+
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    networks:
+      - hadoop
+
+  spark:
+    image: bitnami/spark:3.2.1
+    container_name: spark
+    ports:
+      - "4040:4040"
+      - "8080:8080"
+    networks:
+      - hadoop
+    environment:
+      - SPARK_MODE=master
 
   spark-worker:
-    image: bde2020/spark-worker:2.4.0-hadoop2.7
+    image: bitnami/spark:3.2.1
     container_name: spark-worker
-    environment:
-      - SPARK_WORKER_CORES=1
-      - SPARK_WORKER_MEMORY=1g
-      - SPARK_MASTER=spark://spark-master:7077
-      - 'constraint:node==worker'
-    ports:
-      - 8081:8081
-    depends_on:
-      - spark-master
     networks:
       - hadoop
-
-volumes:
-  hadoop_namenode:
-  hadoop_datanode:
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
 
 networks:
   hadoop:
+
+volumes:
+  namenode-data:
+  datanode-data:
+```
+
+```yaml
+docker-compose down
+```
+
+```yaml
+docker-compose up -d
+```
+
+```yaml
+docker cp /Users/nguyennam/Desktop/Mlops/house_prices.csv namenode:/house_prices.csv
+```
+
+```yaml
+docker exec -it namenode /bin/bash
+hdfs dfs -mkdir /data
+hdfs dfs -put /house_prices.csv /data/house_prices.csv
+exit
 ```
 
 
-
-
-```yaml
-
+```bash
+docker exec -it namenode /bin/bash
 ```
 
 
-
-
-```yaml
-
+```bash
+hdfs dfs -mkdir -p /user/hive/warehouse
 ```
 
 
+```bash
+hdfs dfs -chmod -R 775 /user/hive/warehouse
+hdfs dfs -chown -R spark:supergroup /user/hive/warehouse
+```
+
+```bash
+exit  
+```
 
 
 ```yaml
+from pyspark.sql import SparkSession
 
+# Initialize Spark Session
+spark = SparkSession.builder \
+    .appName("Preprocess House Prices") \
+    .config("hive.metastore.uris", "thrift://hive:9083") \
+    .enableHiveSupport() \
+    .getOrCreate()
+
+# Load Data from HDFS
+df = spark.read.csv("hdfs://namenode:8020/data/house_prices.csv", header=True, inferSchema=True)
+
+# Perform Preprocessing (Example: selecting features and target variable)
+df = df.select("feature1", "feature2", "price")
+
+# Save Data to Hive
+df.write.mode("overwrite").saveAsTable("default.house_prices_features")
+
+spark.stop()
+```
+
+```yaml
+docker cp preprocess_data.py spark:/preprocess_data.py
+```
+
+```yaml
+docker exec -it spark /bin/bash
+spark-submit --master spark://spark:7077 /preprocess_data.py
+exit
+```
+
+```yaml
+docker exec -it mlops-hive-server-1 /bin/bash
+hive
+SHOW TABLES;
+SELECT * FROM default.house_prices_features LIMIT 10;
 ```
