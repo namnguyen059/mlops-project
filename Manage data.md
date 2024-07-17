@@ -1,3 +1,5 @@
+https://github.com/big-data-europe/docker-hive/blob/master/hadoop-hive.env
+
 ```yaml
 version: '3.7'
 services:
