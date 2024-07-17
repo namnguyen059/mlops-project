@@ -3,6 +3,8 @@ docker-compose down
 ```
 
 ```bash
+docker network create hadoop
+
 docker-compose up -d
 ```
 
