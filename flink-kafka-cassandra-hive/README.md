@@ -2,18 +2,6 @@
 
 
 ```bash
-wget https://archive.apache.org/dist/flink/flink-1.18.1/flink-1.18.1-bin-scala_2.11.tgz
-tar -xvzf flink-1.18.1-bin-scala_2.11.tgz
-cd flink-1.18.1
-```
-
-
-```bash
-./bin/start-cluster.sh
-```
-
-
-```bash
 mvn clean package
 ```
 
