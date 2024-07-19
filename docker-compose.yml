@@ -58,6 +58,8 @@ services:
     image: bde2020/hive-metastore-postgresql:2.3.0
     networks:
       - hadoop
+    volumes:
+    - pg-data:/var/lib/postgresql/data
 
   spark:
     image: bitnami/spark:3.2.1
@@ -110,7 +112,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
@@ -138,6 +140,8 @@ services:
       - HEAP_NEWSIZE=100M
       - CASSANDRA_USERNAME=cassandra
       - CASSANDRA_PASSWORD=cassandra
+    volumes:
+      - cassandra_data:/var/lib/cassandra
     networks:
       - hadoop
 
@@ -169,3 +173,5 @@ networks:
 volumes:
   namenode-data:
   datanode-data:
+  cassandra_data:
+  pg-data:
