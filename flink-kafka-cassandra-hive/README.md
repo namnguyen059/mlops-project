@@ -22,8 +22,6 @@ CREATE TABLE house_prices.feature_store (
     PRIMARY KEY (feature1, feature2)
 );
 
-
-USE house_prices;
 SELECT * FROM feature_store;
 ```
 
