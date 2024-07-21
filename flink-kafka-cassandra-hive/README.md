@@ -3,6 +3,10 @@ docker exec -it broker kafka-topics --create --topic house_prices_live --bootstr
 ```
 
 ```bash
+mvn archetype:generate -DgroupId=com.example -DartifactId=flink-kafka-cassandra-hive -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+```
+
+```bash
 docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cassandra
 ```
 
