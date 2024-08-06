@@ -23,9 +23,7 @@ hive
 SHOW TABLES;
 SELECT COUNT(price) FROM default.house_price_predictions LIMIT 10;
 ```
-```
-docker exec -it cassandra cqlsh
-```
+
 ```
 docker build -t mxomtm/house-price-prediction:latest -f Dockerfile .
 docker push mxomtm/house-price-prediction:latest  ```
