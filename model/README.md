@@ -1,5 +1,5 @@
 ```
-docker exec -it cassandra bash
+docker exec -it cassandra cqlsh
 ```
 
 ```
