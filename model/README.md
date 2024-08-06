@@ -14,4 +14,6 @@ CREATE TABLE models (
     model_file blob,
     created_at timestamp
 );
+
+SELECT model_id  FROM models;
 ```
