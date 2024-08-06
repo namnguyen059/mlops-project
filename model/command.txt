@@ -1,0 +1,49 @@
+docker build -t mxomtm/house-price-prediction:latest -f Dockerfile .
+docker push mxomtm/house-price-prediction:latest                                               
+kubectl config use-context docker-desktop
+kubectl config current-context
+kubectl config get-contexts
+kubectl config set-context --current --namespace=default
+kubectl set image deployment/house-price-prediction house-price-prediction=mxomtm/house-price-prediction:latest
+kubectl delete deployment house-price-prediction
+kubectl delete service house-price-prediction
+kubectl create ns model-serving
+kubens model-serving
+helm upgrade --install app \
+    --set image.repository=mxomtm/house-price-prediction \
+    --set image.tag=latest \
+    /Users/nguyennam/Desktop/Mlops/model/helm_charts/app\
+    --namespace model-serving
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl get deployments
+kubectl get services
+curl -X GET http://localhost:80/predict
+kubectl get pods
+kubectl logs 
+kubectl get nodes -o wide
+1860
+
+
+
+
+```
+docker exec -it cassandra cqlsh
+```
+
+```
+CREATE KEYSPACE model_repo WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
+
+USE model_repo;
+
+CREATE TABLE models (
+    model_id UUID PRIMARY KEY,
+    model_name text,
+    model_version text,
+    model_file blob,
+    created_at timestamp
+);
+
+SELECT model_id  FROM models;
+```
+

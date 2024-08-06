@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: house-price-prediction
+spec:
+  selector:
+    app: house-price-prediction
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer

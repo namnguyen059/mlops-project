@@ -1,0 +1,12 @@
+apiVersion: v2
+name: house-price-prediction
+description: Helm chart for house price prediction app
+
+type: application
+
+version: 0.1.0
+appVersion: "1.0.0"
+
+maintainers:
+- email: namxyz012@gmai.com
+  name: namnguyen
