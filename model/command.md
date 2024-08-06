@@ -26,7 +26,7 @@ SELECT COUNT(price) FROM default.house_price_predictions LIMIT 10;
 
 ```
 docker build -t mxomtm/house-price-prediction:latest -f Dockerfile .
-docker push mxomtm/house-price-prediction:latest  ```
+docker push mxomtm/house-price-prediction:latest  
 ```
 
 ```
