@@ -112,7 +112,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
@@ -167,6 +167,20 @@ services:
     networks:
       - hadoop
 
+  jenkins:
+    image: fullstackdatascience/jenkins:lts
+    container_name: jenkins
+    privileged: true
+    user: root
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    networks:
+      - hadoop
+
 networks:
   hadoop:
 
@@ -175,3 +189,5 @@ volumes:
   datanode-data:
   cassandra_data:
   pg-data:
+  jenkins_home:
+
