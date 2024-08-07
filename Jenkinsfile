@@ -25,8 +25,7 @@ pipeline {
                     echo 'Building image for deployment..'
                     def imageName = "${registry}:v1.${BUILD_NUMBER}"
 
-                    // Change the path to the Dockerfile
-                    dockerImage = docker.build(imageName, "--file model/Dockerfile model")
+                    dockerImage = docker.build(imageName, "--file model/Dockerfile .")
                     echo 'Pushing image to dockerhub..'
                     docker.withRegistry('', registryCredential) {
                         dockerImage.push()
@@ -47,7 +46,6 @@ pipeline {
             steps {
                 script {
                     container('helm') {
-                        // Change the path to the Helm charts
                         sh("helm upgrade --install app --set image.repository=${registry} \
                         --set image.tag=v1.${BUILD_NUMBER} ./model/helm_charts/app --namespace model-serving")
                     }
