@@ -66,3 +66,12 @@ kubectl get nodes -o wide
 ```
 
 Dashboard ID: 1860
+
+```
+ngrok http 8081
+kubectl create serviceaccount jenkins-sa --namespace model-serving
+kubectl create clusterrolebinding jenkins-sa-binding --clusterrole=cluster-admin --serviceaccount=model-serving:jenkins-sa 
+kubectl create clusterrolebinding cluster-admin-default-binding --clusterrole=cluster-admin --user=system:serviceaccount:model-serving:default
+kubectl -n model-serving create token jenkins-sa
+```
+https://kubernetes.docker.internal:6443
