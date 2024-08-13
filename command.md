@@ -38,3 +38,5 @@ hive
 SHOW TABLES;
 SELECT * FROM default.house_prices_features LIMIT 10;
 ```
+
+hadoop-hive.env: https://github.com/big-data-europe/docker-hive/blob/master/hadoop-hive.env
